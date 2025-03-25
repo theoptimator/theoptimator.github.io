@@ -16,7 +16,10 @@
   let overlappedNPCs = new Set(); // Track NPCs that have been counted 
   let npc_g = new Set();
   let npc_e = new Set();
+  let lives = 3;
+  let enemy;
   let scoreText;
+  let lives_text;
   let exit_score = 0;
   let exit_collide = 0;
   const numNPCs = 3; // Number of NPCs to create
@@ -43,11 +46,13 @@ function preload() {
     this.load.image('background', 'assets/background.png')
     this.load.image('wiz', 'assets/wiz.png')
     this.load.image('hand', 'assets/hand2.png')
+    this.load.image('enemy', 'assets/enemy.png')
     this.load.audio('npce', 'sounds/scream.wav')
     this.load.audio('npcg', 'sounds/scream2.wav')
     this.load.audio('exit', 'sounds/exit.wav')
     this.load.audio('hand', 'sounds/hand.wav')
     this.load.audio('music', 'sounds/music.mp3');
+    this.load.audio('enemy', 'sounds/enemy.wav')
   }
 function create() {
     gameOver = false;
@@ -202,7 +207,27 @@ function initializeGame() {
         },
       }
     ).setOrigin(0.5, 0.5); // Center the text
-  
+    const titleText3 = this.add.text(
+      config.width - 200, // Center horizontally on the right side
+      config.height -200, // Center vertically
+      'If stuck, press R', // Your game title
+      {
+        fontFamily: 'Damascus', // Font style
+        fontSize: '24px', // Font size
+        color: '#FFFFFF', // White color
+        fontStyle: 'italic', // Bold text
+        stroke: '#000000', // Black outline
+        strokeThickness: 4, // Outline thickness
+        shadow: {
+          offsetX: 2,
+          offsetY: 2,
+          color: '#000000',
+          blur: 4,
+          stroke: true,
+          fill: true,
+        },
+      }
+    ).setOrigin(0.5, 0.5);
     // Create maze layout (10x10 grid)
     tileSize = 40;
     maze = generateMaze(25, 15);
@@ -246,8 +271,11 @@ function initializeGame() {
     Phaser.Math.Between(0, maze[0].length - 1) * tileSize + tileSize / 2, // Random X position
     Phaser.Math.Between(0, maze.length - 1) * tileSize + tileSize / 2, // Random Y position
     'hand' // Image key
-  ); // Adjust scale if necessary    
-    //this.physics.add.collider(hand_doom, walls);
+  ).setScale(2); // Adjust scale if necessary    
+    // create enemy
+    enemy = this.physics.add.sprite(Phaser.Math.Between(0, maze[0].length - 1) * tileSize + tileSize / 2, // Random X position
+    Phaser.Math.Between(0, maze.length - 1) * tileSize + tileSize / 2, // Random Y position
+    'enemy').setScale(2);
     
 
     // Create player
@@ -284,14 +312,26 @@ function initializeGame() {
       this.time.delayedCall(500, () => {
         hand_doom.clearTint(); // Reset tint to normal
       });
+    });
 
+    this.physics.add.collider(player, enemy , (player, enemy) => {
+      //animation
+      // move player to random position
+      startPosition = findValidNPCPosition(maze);
+      this.sound.play('enemy')
+      player.setPosition(startPosition.x* tileSize + tileSize / 2, startPosition.y* tileSize + tileSize / 2)
+      lives--;
+      enemy.setTint(0xff0000)
+      this.time.delayedCall(500, () => {
+        hand_doom.clearTint(); // Reset tint to normal
+      });
     });
     // Set initial velocity
     hand_doom.setVelocity(0);
-  
+    enemy.setVelocity(0);
     // Keyboard input
     cursors = this.input.keyboard.createCursorKeys();
-  
+
     fog = this.add.group();
     for (let y = 0; y < maze.length; y++) {
       for (let x = 0; x < maze[y].length; x++) {
@@ -391,13 +431,21 @@ function initializeGame() {
     stroke: '#000000',
     strokeThickness: 4,
   }).setOrigin(0, 0);
+  lives_text = this.add.text(1110, 500, 'Lives: 3', {
+    fontFamily: 'Arial',
+    fontSize: '32px',
+    color: '#FFFFFF',
+    fontStyle: 'bold',
+    stroke: '#000000',
+    strokeThickness: 4,
+  }).setOrigin(0, 0);
     // Play background music
     backgroundMusic = this.sound.add('music', {
       volume: 1, // Adjust volume (0 to 1)
       loop: true, // Loop the music
     });
     backgroundMusic.play();
-  }
+}
   
 function updateWallAppearance() {
     const rn = Math.random()
@@ -420,6 +468,7 @@ function changeMaze() {
   npc_g.clear(true, true);
   npc_e.clear(true, true);
   fog.clear(true, true);
+  enemy.destroy();
   if (exit) exit.destroy();
   if (hand_doom) hand_doom.destroy();
 
@@ -547,7 +596,7 @@ function changeMaze() {
     Phaser.Math.Between(0, maze[0].length - 1) * tileSize + tileSize / 2, // Random X position
     Phaser.Math.Between(0, maze.length - 1) * tileSize + tileSize / 2, // Random Y position
     'hand' // Image key
-  ); // Adjust scale if necessary    
+  ).setScale(2); // Adjust scale if necessary    
   //this.physics.add.collider(hand_doom, walls);
   this.physics.add.collider(player, hand_doom , (player, hand_doom) => {
     //animation
@@ -560,12 +609,32 @@ function changeMaze() {
     this.time.delayedCall(500, () => {
       hand_doom.clearTint(); // Reset tint to normal
     });
-
-
-
   });
   // Set initial velocity
   hand_doom.setVelocity(0);
+
+
+    // Create enemy
+    enemy = this.physics.add.sprite(
+      Phaser.Math.Between(0, maze[0].length - 1) * tileSize + tileSize / 2, // Random X position
+      Phaser.Math.Between(0, maze.length - 1) * tileSize + tileSize / 2, // Random Y position
+      'enemy' // Image key
+    ).setScale(2); // Adjust scale if necessary    
+    //this.physics.add.collider(hand_doom, walls);
+    this.physics.add.collider(player, enemy , (player, enemy) => {
+      //animation
+      // move player to random position
+      let startPosition = findValidNPCPosition(maze);
+      this.sound.play('enemy')
+      player.setPosition(startPosition.x* tileSize + tileSize / 2, startPosition.y* tileSize + tileSize / 2)
+      lives--;
+      enemy.setTint(0xff0000);
+      this.time.delayedCall(500, () => {
+        enemy.clearTint(); // Reset tint to normal
+      });
+    });
+    // Set initial velocity
+    enemy.setVelocity(0);
 
   this.physics.add.collider(player, npcs_g, (player, npc) => {
         if (!overlappedNPCs.has(npc) & (npc_g.has(npc))) {
@@ -597,7 +666,15 @@ function changeMaze() {
 
     }
   );
-
+  lives_text.destroy();
+  lives_text = this.add.text(1110, 500, 'Lives: ${lives}', {
+    fontFamily: 'Arial',
+    fontSize: '32px',
+    color: '#FFFFFF',
+    fontStyle: 'bold',
+    stroke: '#000000',
+    strokeThickness: 4,
+  }).setOrigin(0, 0);
   
 
 }
@@ -638,12 +715,13 @@ function update() {
     // Calculate score
     
     let score = npcsEncountered_g * 10 - npcsEncountered_e*10 + 50*exit_score; // Example: 1 point per second + 10 points per NPCl
-    if (score < 0 && !gameOver) {
+    if ((lives <= 0 && !gameOver) || (score < 0 && !gameOver)) {
       gameOver = true; // Prevent multiple dialogue boxes
       showGameOverDialogue.call(this);
     }
     // Update the score display
     scoreText.setText(`Score: ${score}`);
+    lives_text.setText(`Lives: ${lives}`);
     // Player movement
     player.setVelocity(0);
     const v = 200
@@ -658,7 +736,9 @@ function update() {
     } else if (cursors.down.isDown) {
       player.setVelocityY(v);
     }
-  
+    if (this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R).isDown){
+      changeMaze.call(this);
+    };
     // Reveal area around player
     const tileX = Math.floor(player.x / tileSize);
     const tileY = Math.floor(player.y / tileSize);
@@ -677,7 +757,7 @@ function update() {
     );
   
   // Define the chase range (e.g., 200 pixels)
-  const chaseRange = 100;
+  const chaseRange = 150;
   
   if (distanceToPlayer <= chaseRange) {
     // Move enemy toward player
@@ -695,7 +775,34 @@ function update() {
     // Stop the enemy if the player is out of range
     hand_doom.setVelocity(0);
   }
+  // Calculate distance between enemy and player
+  const enemyToPlayer = Phaser.Math.Distance.Between(
+      enemy.x, enemy.y,
+      player.x, player.y
+    );
+  
+  // Define the chase range (e.g., 200 pixels)
+  const chaseRange2 = 150;
+  
+  if (enemyToPlayer <= chaseRange2) {
+    // Move enemy toward player
+    const angle2 = Phaser.Math.Angle.Between(
+      enemy.x, enemy.y,
+      player.x, player.y
+    );
+  
+    const speed2 = 70; // Speed of the enemy
+    enemy.setVelocity(
+      Math.cos(angle2) * speed2,
+      Math.sin(angle2) * speed2
+    );
+  } else {
+    // Stop the enemy if the player is out of range
+    enemy.setVelocity(0);
+  }
     }
+  
+    
     
   }
   
@@ -1051,6 +1158,7 @@ function showGameOverDialogue() {
     npcsEncountered_e = 0;
     npcsEncountered_g = 0;
     exit_score = 0;
+    lives = 3;
     backgroundBox.destroy();
     gameOverText.destroy();
     instructionsText.destroy();
