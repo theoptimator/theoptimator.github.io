@@ -680,7 +680,7 @@ function changeMaze() {
 }
 
 function revealArea(x, y) {
-    const revealDistance = 2; // Number of tiles to reveal in each direction
+    const revealDistance = 4; // Number of tiles to reveal in each direction
   
     for (let dy = -revealDistance; dy <= revealDistance; dy++) {
       for (let dx = -revealDistance; dx <= revealDistance; dx++) {
@@ -766,7 +766,7 @@ function update() {
       player.x, player.y
     );
   
-    const speed = 70; // Speed of the enemy
+    const speed = 45; // Speed of the enemy
     hand_doom.setVelocity(
       Math.cos(angle) * speed,
       Math.sin(angle) * speed
@@ -791,7 +791,7 @@ function update() {
       player.x, player.y
     );
   
-    const speed2 = 70; // Speed of the enemy
+    const speed2 = 45; // Speed of the enemy
     enemy.setVelocity(
       Math.cos(angle2) * speed2,
       Math.sin(angle2) * speed2
